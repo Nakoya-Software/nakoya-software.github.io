@@ -3,44 +3,90 @@
  * https://nakoyasoftware.com/
  */
 
-const webconf = (() => {
+const mainlib = (() => {
     "use strict";
 
-    class APIResponse {
-        /**
-         * Create a new APIResponse
-         * 
-         * @param {boolean} success
-         * @param {message} message
-         */
-        constructor(success, message = "") {
-            this.success = success;
-            this.message = message;
-        }
-    }
+    const API = (() => {
+        "use strict";
 
-    class API {
-        /**
-         * Get raw JSON response from server
-         * 
-         * @param {string} path
-         * @param {string} method
-         * @param {object} input
-         * @returns {Promise<APIResponse>}
-         */
-        async getRaw(path, method, input) {
-            try {
-                const result = await fetch(path, {
-                    method: method,
-                    body: JSON.stringify(input)
-                });
-
-                if (!result) {
-                    throw new Error("Fetch result was invalid.");
+        class Client {
+            /**
+             * Create a new API client instance.
+             * 
+             * @param {string} [host='https://api.nakoyasoftware.com/v1/']
+             * @throws {TypeError}
+             * @throws {Error}
+             */
+            constructor(host = "https://api.nakoyasoftware.com/v1/") {
+                if (typeof host !== 'string') {
+                    throw new TypeError(`host must be a string, but got ${typeof host}`);
                 }
-            } catch (err) {
-                return new APIResponse(false, err.stack);
+
+                let parsedUrl;
+                try {
+                    parsedUrl = new URL(host);
+                } catch (err) {
+                    throw new TypeError(`host must be a valid URL, but received: "${host}"`);
+                }
+
+                if (parsedUrl.protocol !== 'https:') {
+                    throw new Error(`Security Violation: host must use the HTTPS protocol, but got "${parsedUrl.protocol}"`);
+                }
+
+                this.host = host.replace(/\/+$/, "") + "/";
+            }
+
+            /**
+             * Appends a relative path to the base host URL cleanly.
+             * 
+             * @param {string} [path=''] 
+             * @returns {string}
+             * @throws {TypeError}
+             */
+            url(path = '') {
+                if (typeof path !== 'string') {
+                    throw new TypeError(`path must be a string, but got ${typeof path}`);
+                }
+
+                const cleanPath = path.replace(/^\/+/, "");
+
+                return this.host + cleanPath;
+            }
+
+            /**
+             * A helper method to perform GET requests easily using your custom wrapper.
+             * 
+             * @param {string} endpoint
+             * @param {Object} [options={}]
+             * @returns {Promise<Object>}
+             */
+            async get(endpoint, options = {}) {
+                const targetUrl = this.url(endpoint);
+
+                try {
+                    const response = await fetch(targetUrl, {
+                        method: 'GET',
+                        ...options,
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...(options.headers || {})
+                        }
+                    });
+
+                    return await response.json();
+                } catch (err) {
+                    console.error(`Nakoya API Fetch Failed for ${targetUrl}:`, err);
+                    throw err;
+                }
             }
         }
-    }
+
+        return {
+            Client
+        };
+    })();
+
+    return {
+        API
+    };
 })();

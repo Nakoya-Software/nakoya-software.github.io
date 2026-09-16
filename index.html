@@ -10,5 +10,21 @@
     </head>
     <body>
         <script type="text/javascript" src="https://nakoyasoftware.com/assets/js/global.js"></script>
+        <script>
+            (async() => {
+                const client = new mainlib.API.Client();
+
+                try {
+                    const ping = await client.get('ping'); 
+                    if (ping.success) {
+                        alert(ping.message);
+                    } else {
+                        alert('Failed ping');
+                    }
+                } catch (err) {
+                    alert(err);
+                }
+            })();
+        </script>
     </body>
 </html>
